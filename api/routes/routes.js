@@ -11,6 +11,5 @@ module.exports = server => {
   server
     .route('/api/users')
     .post(encryptUserPW, createUser /* I need some controller Love*/);
-  server.get('/api/login', compareUserPW, login);
   server.route('/api/login').post(compareUserPW, login);
 };

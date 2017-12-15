@@ -1,3 +1,4 @@
+
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
@@ -37,20 +38,11 @@ const encryptUserPW = (req, res, next) => {
   // Once the password is encrypted using bcrypt, you'll need to save the user the DB.
   // Once the user is set, take the savedUser and set the returned document from Mongo on req.user
   // call next to head back into the route handler for encryptUserPW
-  if (!username) {
-    sendUserError('Gimme a username', res);
-    return;
-  }
-
-  if (!password) {
-    sendUserError('password is required', res);
-    return;
-  }
+ 
   bcrypt
     .hash(password, SaltRounds)
     .then((pw) => {
-      const newUser = new User({username, password: pw});
-      req.user = { username, password: pw };
+      req.password = pw;
       next();
     })
     .catch((err) => {
@@ -65,19 +57,25 @@ const compareUserPW = (req, res, next) => {
   // You'll need to find the user in your DB
   // Once you have the user, you'll need to pass the encrypted pw and the plaintext pw to the compare function
   // If the passwords match set the username on `req` ==> req.username = user.username; and call next();
-  User.findOne({username})
-  .then((user) => {
+  User.findOne({ username }, (err, user) => {
+    if (err || user === null) {
+      res.status(422).json({ err: 'user not found' });
+    }
+    const hashedPw = user.password;
     bcrypt
-      .compare(password, user.password)
-      .then((compareOutput) => {
-        if(!compareOutput) throw new Error;
+      .compare(password, hashedPw)
+      .then(response => { 
+        if (!response) {
+          sendUserError('some message', res);
+          return;
+        }
         req.username = user.username;
         next();
       })
-      .catch(err => {
-        throw new Error(err);
+      .catch(error => {
+        throw new Error(err)
       });
-  });
+  })
 };
 
 module.exports = {
